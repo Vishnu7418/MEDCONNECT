@@ -30,7 +30,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ navigate }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {SERVICES_LIST.map((service) => (
-                <div key={service.name} className="bg-white dark:bg-dark-card rounded-lg shadow-lg p-8 flex flex-col items-center text-center transform hover:-translate-y-2 transition-transform duration-300">
+                <div key={service.name} className="bg-white dark:bg-dark-card rounded-lg shadow-lg p-8 flex flex-col items-center text-center transition-all duration-300 ease-in-out hover:shadow-xl hover:[transform:perspective(1000px)_translateZ(20px)]">
                   <div className="text-6xl mb-6 text-primary">{service.icon}</div>
                   <h3 className="text-2xl font-bold text-gray-800 dark:text-dark-text mb-4">{service.name}</h3>
                   <p className="text-gray-600 dark:text-gray-400 flex-grow">{service.description}</p>

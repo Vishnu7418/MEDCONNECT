@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { User, Appointment, Prescription, LabTest } from '../../types';
 import Appointments from './Appointments';
@@ -41,7 +42,7 @@ const PatientDashboardSummary: React.FC<{ user: User, setActiveTab: (tab: Patien
         <div>
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-dark-text mb-6">Your Health Summary</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                 <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-blue-800 dark:text-blue-300">Upcoming Appointment</h3>
                      {nextAppointment ? (
                         <>
@@ -55,7 +56,7 @@ const PatientDashboardSummary: React.FC<{ user: User, setActiveTab: (tab: Patien
                     )}
                     <button onClick={() => setActiveTab('Appointments')} className="mt-4 text-blue-600 dark:text-blue-400 font-semibold hover:underline">View All Appointments</button>
                 </div>
-                 <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                 <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-teal-800 dark:text-teal-300">Latest Prescription</h3>
                      {latestPrescription ? (
                         <>
@@ -69,7 +70,7 @@ const PatientDashboardSummary: React.FC<{ user: User, setActiveTab: (tab: Patien
                      )}
                     <button onClick={() => setActiveTab('Prescriptions')} className="mt-4 text-teal-600 dark:text-teal-400 font-semibold hover:underline">View All Prescriptions</button>
                 </div>
-                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-yellow-800 dark:text-yellow-300">Outstanding Bill</h3>
                      {outstandingBill ? (
                         <>
@@ -81,7 +82,7 @@ const PatientDashboardSummary: React.FC<{ user: User, setActiveTab: (tab: Patien
                      )}
                     <button onClick={() => setActiveTab('Billing')} className="mt-4 text-yellow-600 dark:text-yellow-400 font-semibold hover:underline">View Billing Details</button>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-green-800 dark:text-green-300">Recent Medical Record</h3>
                      {recentRecord ? (
                         <>
@@ -95,13 +96,13 @@ const PatientDashboardSummary: React.FC<{ user: User, setActiveTab: (tab: Patien
                      )}
                     <button onClick={() => setActiveTab('Medical Records')} className="mt-4 text-green-600 dark:text-green-400 font-semibold hover:underline">View All Records</button>
                 </div>
-                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">Wellness Tracker</h3>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">Log your vitals and track your progress.</p>
                      <p className="font-bold text-lg mt-1 dark:text-white">{wellnessEntryCount} entries logged</p>
                     <button onClick={() => setActiveTab('Wellness')} className="mt-4 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Open Tracker</button>
                 </div>
-                <div className="bg-rose-50 dark:bg-rose-900/20 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div className="bg-rose-50 dark:bg-rose-900/20 p-6 rounded-lg shadow transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2 hover:scale-105">
                     <h3 className="font-semibold text-rose-800 dark:text-rose-300">Symptom Checker</h3>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">Get AI-powered insights on your symptoms.</p>
                      <p className="font-bold text-lg mt-1 dark:text-white">Powered by Gemini</p>

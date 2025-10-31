@@ -3,6 +3,7 @@ import type { User, Medicine, Prescription } from '../../types';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import AlternativeSuggestionsModal from './AlternativeSuggestionsModal';
 
 const AddMedicineModal: React.FC<{ onSave: (medicine: Omit<Medicine, 'id'>) => void; onClose: () => void; }> = ({ onSave, onClose }) => {
     const [name, setName] = useState('');
@@ -70,9 +71,12 @@ const NotificationBanner: React.FC<{ message: string | null }> = ({ message }) =
 };
 
 const PharmacyPortal: React.FC<PharmacyPortalProps> = ({ user, medicines, setMedicines, prescriptions, setPrescriptions }) => {
-    const [activeTab, setActiveTab] = useState<PharmacyTab>('Prescriptions');
-    const [isModalOpen, setModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<PharmacyTab>('Inventory');
+    const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [notification, setNotification] = useState<string | null>(null);
+    const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
+    const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+
 
     const showNotification = (message: string) => {
         setNotification(message);
@@ -87,8 +91,13 @@ const PharmacyPortal: React.FC<PharmacyPortalProps> = ({ user, medicines, setMed
     const handleAddMedicine = (newMedicineData: Omit<Medicine, 'id'>) => {
         const newMedicine: Medicine = { id: `med_${new Date().getTime()}`, ...newMedicineData };
         setMedicines(prev => [...prev, newMedicine].sort((a, b) => a.name.localeCompare(b.name)));
-        setModalOpen(false);
+        setAddModalOpen(false);
         showNotification(`Successfully added "${newMedicine.name}" to inventory.`);
+    };
+
+    const handleSuggestAlternatives = (medicine: Medicine) => {
+        setSelectedMedicine(medicine);
+        setSuggestionModalOpen(true);
     };
 
     const getPrescriptionStatusClass = (status: Prescription['status']) => {
@@ -129,7 +138,7 @@ const PharmacyPortal: React.FC<PharmacyPortalProps> = ({ user, medicines, setMed
                 );
 
             case 'Inventory':
-                 return <InventoryManagement medicines={medicines} onAddMedicine={() => setModalOpen(true)} />;
+                 return <InventoryManagement medicines={medicines} onAddMedicine={() => setAddModalOpen(true)} onSuggestAlternatives={handleSuggestAlternatives} />;
 
             case 'Analytics':
                 return <Analytics medicines={medicines} />;
@@ -157,26 +166,32 @@ const PharmacyPortal: React.FC<PharmacyPortalProps> = ({ user, medicines, setMed
 
                 <div className="mt-8">{renderContent()}</div>
             </div>
-            {isModalOpen && <AddMedicineModal onSave={handleAddMedicine} onClose={() => setModalOpen(false)} />}
+            {isAddModalOpen && <AddMedicineModal onSave={handleAddMedicine} onClose={() => setAddModalOpen(false)} />}
+            {isSuggestionModalOpen && selectedMedicine && (
+                <AlternativeSuggestionsModal medicine={selectedMedicine} onClose={() => setSuggestionModalOpen(false)} />
+            )}
         </>
     );
 };
 
 // --- Sub-components for tabs ---
 
-const InventoryManagement: React.FC<{ medicines: Medicine[]; onAddMedicine: () => void; }> = ({ medicines, onAddMedicine }) => {
+const InventoryManagement: React.FC<{ medicines: Medicine[]; onAddMedicine: () => void; onSuggestAlternatives: (medicine: Medicine) => void; }> = ({ medicines, onAddMedicine, onSuggestAlternatives }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const filteredMedicines = useMemo(() => medicines.filter(med =>
         med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         med.category.toLowerCase().includes(searchTerm.toLowerCase())
     ), [medicines, searchTerm]);
 
-    const getStatus = (med: Medicine): { text: string; className: string; rowClassName: string } => {
+    const getStatus = (med: Medicine): { text: string; className: string; rowClassName: string; needsSuggestion: boolean; } => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const expiryDate = new Date(med.expiry);
-        if (expiryDate < today) return { text: '❌ Expired', className: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', rowClassName: 'bg-red-50 dark:bg-red-900/20' };
-        if (med.quantity < 20) return { text: '⚠️ Low Stock', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', rowClassName: 'bg-yellow-50 dark:bg-yellow-900/20' };
-        return { text: '✅ Available', className: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', rowClassName: 'hover:bg-gray-50 dark:hover:bg-dark-bg' };
+        const isExpired = expiryDate < today;
+        const isLowStock = med.quantity < 20;
+
+        if (isExpired) return { text: '❌ Expired', className: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', rowClassName: 'bg-red-50 dark:bg-red-900/20', needsSuggestion: true };
+        if (isLowStock) return { text: '⚠️ Low Stock', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', rowClassName: 'bg-yellow-50 dark:bg-yellow-900/20', needsSuggestion: true };
+        return { text: '✅ Available', className: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', rowClassName: 'hover:bg-gray-50 dark:hover:bg-dark-bg', needsSuggestion: false };
     };
 
     const handleDownloadPdf = () => {
@@ -203,7 +218,7 @@ const InventoryManagement: React.FC<{ medicines: Medicine[]; onAddMedicine: () =
             <div className="max-h-96 overflow-y-auto">
                 <table className="min-w-full">
                     <thead className="bg-light dark:bg-dark-bg sticky top-0">
-                        <tr>{['Name', 'Category', 'Quantity', 'Expiry Date', 'Status'].map(h => <th key={h} className="text-left py-2 px-3 text-sm font-semibold text-gray-600 dark:text-gray-300">{h}</th>)}</tr>
+                        <tr>{['Name', 'Category', 'Quantity', 'Expiry Date', 'Status', 'Actions'].map(h => <th key={h} className="text-left py-2 px-3 text-sm font-semibold text-gray-600 dark:text-gray-300">{h}</th>)}</tr>
                     </thead>
                     <tbody className="text-gray-700 dark:text-dark-text">
                         {filteredMedicines.map(med => {
@@ -215,6 +230,13 @@ const InventoryManagement: React.FC<{ medicines: Medicine[]; onAddMedicine: () =
                                     <td className={`py-2 px-3 ${status.text.includes('Low Stock') ? 'font-bold text-yellow-600 dark:text-yellow-400' : ''}`}>{med.quantity}</td>
                                     <td className={`py-2 px-3 ${status.text === '❌ Expired' ? 'text-red-600 dark:text-red-400' : ''}`}>{med.expiry}</td>
                                     <td className="py-2 px-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${status.className}`}>{status.text}</span></td>
+                                    <td className="py-2 px-3">
+                                        {status.needsSuggestion && (
+                                            <button onClick={() => onSuggestAlternatives(med)} className="text-xs bg-purple-100 text-purple-700 font-bold py-1 px-2 rounded hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300">
+                                                Suggest Alternatives
+                                            </button>
+                                        )}
+                                    </td>
                                 </tr>
                             )
                         })}

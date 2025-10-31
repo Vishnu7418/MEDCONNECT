@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Page } from '../types';
 import { SERVICES_LIST, TESTIMONIALS } from '../constants';
@@ -11,7 +10,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
   return (
     <div className="animate-fadeIn">
       {/* Hero Section */}
-      <section className="bg-primary/5 dark:bg-dark-bg text-gray-800 py-20 lg:py-32">
+      <section className="bg-gradient-to-r from-primary/5 via-light to-primary/5 dark:from-dark-bg dark:via-dark-card/20 dark:to-dark-bg bg-[length:200%_200%] animate-gradientShift text-gray-800 py-20 lg:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-primary tracking-tight">
             Compassionate Care, Advanced Medicine
@@ -20,10 +19,10 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
             Welcome to MediConnect, where your health is our highest priority. We combine state-of-the-art technology with a human touch to provide you with the best healthcare possible.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <button onClick={() => navigate('Services')} className="bg-primary text-white font-semibold py-3 px-8 rounded-full hover:bg-primary/90 transition duration-300 w-full sm:w-auto">
+            <button onClick={() => navigate('Services')} className="bg-primary text-white font-semibold py-3 px-8 rounded-full transition-all duration-300 shadow-glow-primary hover:shadow-glow-primary-hover hover:-translate-y-1 w-full sm:w-auto">
               Explore Our Services
             </button>
-            <button onClick={() => navigate('Contact')} className="bg-secondary text-white font-semibold py-3 px-8 rounded-full hover:bg-green-600 transition duration-300 w-full sm:w-auto">
+            <button onClick={() => navigate('Contact')} className="bg-secondary text-white font-semibold py-3 px-8 rounded-full transition-all duration-300 shadow-glow-secondary hover:shadow-glow-secondary-hover hover:-translate-y-1 w-full sm:w-auto">
               Emergency Contact
             </button>
           </div>
@@ -39,7 +38,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
           </div>
           <div className="mt-12 grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {SERVICES_LIST.slice(0, 4).map((service) => (
-              <div key={service.name} className="bg-light dark:bg-dark-bg p-6 rounded-lg shadow-md text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div key={service.name} className="bg-light dark:bg-dark-bg p-6 rounded-lg shadow-md text-center transition-all duration-300 ease-in-out hover:shadow-xl hover:[transform:perspective(1000px)_translateZ(20px)]">
                 <div className="text-4xl text-primary mb-4">{service.icon}</div>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-dark-text">{service.name}</h3>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">{service.description}</p>
@@ -80,7 +79,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                   </ul>
               </div>
               <div className="rounded-lg overflow-hidden shadow-2xl">
-                  <img src="https://placehold.co/800x600/EBF4FF/7D9EC2?text=Modern+Hospital+Interior" alt="Modern hospital interior" className="w-full h-full object-cover"/>
+                  <img src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=2073&auto=format&fit=crop" alt="Bright, modern hospital lobby" className="w-full h-full object-cover"/>
               </div>
           </div>
       </section>
@@ -94,7 +93,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {TESTIMONIALS.map((testimonial, index) => (
-              <div key={index} className="bg-light dark:bg-dark-bg p-8 rounded-lg shadow-md">
+              <div key={index} className="bg-light dark:bg-dark-bg p-8 rounded-lg shadow-md transition-all duration-300 ease-in-out hover:shadow-xl hover:[transform:perspective(1000px)_translateZ(20px)]">
                 <p className="text-gray-600 dark:text-gray-400 italic">"{testimonial.text}"</p>
                 <div className="mt-6 flex items-center">
                   <img className="h-12 w-12 rounded-full" src={testimonial.avatar} alt={testimonial.name} />

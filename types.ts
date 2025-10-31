@@ -11,6 +11,7 @@ export interface User {
   avatarUrl?: string;
   password: string;
   department?: string;
+  isVerified?: boolean;
 }
 
 export interface Patient {

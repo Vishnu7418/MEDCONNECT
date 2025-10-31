@@ -1,26 +1,10 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import type { User, DoctorAvailability, Patient, Appointment, Prescription, LabTest } from '../../types';
+import type { User, Patient, Appointment, Prescription, LabTest } from '../../types';
 import { MOCK_PATIENTS } from '../../constants';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-
-interface DoctorPortalProps {
-  user: User;
-  appointments: Appointment[];
-  prescriptions: Prescription[];
-  setPrescriptions: React.Dispatch<React.SetStateAction<Prescription[]>>;
-  labTests: LabTest[];
-}
-
-const TIME_SLOTS = Array.from({ length: 18 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 8; // 8 AM to 4:30 PM
-    const minute = i % 2 === 0 ? '00' : '30';
-    const period = hour < 12 ? 'AM' : 'PM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
-    return `${String(displayHour).padStart(2, '0')}:${minute} ${period}`;
-});
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (d: Date): string => {
@@ -30,7 +14,7 @@ const formatDate = (d: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-// -- MODAL COMPONENTS --
+// --- MODAL COMPONENTS ---
 
 interface PatientDetailModalProps {
     doctor: User;
@@ -192,7 +176,7 @@ const CreatePrescriptionModal: React.FC<CreatePrescriptionModalProps> = ({ docto
     );
 };
 
-const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode }> = ({ title, value, icon }) => (
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md flex items-center gap-4">
         <div className="bg-primary/10 dark:bg-primary/20 text-primary p-3 rounded-full">{icon}</div>
         <div>
@@ -202,98 +186,118 @@ const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode }
     </div>
 );
 
+// --- TAB COMPONENTS ---
 
-const DoctorPortal: React.FC<DoctorPortalProps> = ({ user, appointments, prescriptions, setPrescriptions, labTests }) => {
-  const [availability, setAvailability] = useState<DoctorAvailability>({});
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  
-  const availabilityStorageKey = `doctorAvailability_${user.id}`;
-
-  const doctorsAppointments = useMemo(() => appointments.filter(app => app.doctorId === user.id), [user.id, appointments]);
-  const patientIds = useMemo(() => [...new Set(doctorsAppointments.map(app => app.patientId))], [doctorsAppointments]);
-  const doctorPatients = useMemo(() => MOCK_PATIENTS.filter(p => patientIds.includes(p.id)), [patientIds]);
-
-  const todaysAppointmentsCount = useMemo(() => doctorsAppointments.filter(
-    app => app.date === formatDate(new Date()) && app.status === 'Upcoming'
-  ).length, [doctorsAppointments]);
-  
-  const handleSavePrescription = (prescription: Prescription) => {
-    // This function will either add a new prescription or update an existing one
-    setPrescriptions(prev => {
-        const existingIndex = prev.findIndex(p => p.id === prescription.id);
-        if (existingIndex > -1) {
-            const updated = [...prev];
-            updated[existingIndex] = prescription;
-            return updated;
-        }
-        return [...prev, prescription];
-    });
-  };
-
-  useEffect(() => {
-    try {
-        const savedAvailability = localStorage.getItem(availabilityStorageKey);
-        if (savedAvailability) {
-            setAvailability(JSON.parse(savedAvailability));
-        }
-    } catch (error) { console.error("Failed to load availability", error); }
-  }, [availabilityStorageKey]);
-
-  useEffect(() => {
-    try {
-        localStorage.setItem(availabilityStorageKey, JSON.stringify(availability));
-    } catch (error) { console.error("Failed to save availability", error); }
-  }, [availability, availabilityStorageKey]);
-
-  const handleDownloadPatientList = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(`Patient List - ${user.name}`, 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`${user.department || 'All Departments'}`, 14, 28);
-    const head = [['Name', 'Age', 'Current Condition']];
-    const body = doctorPatients.map(p => [p.name, p.age, p.currentCondition]);
-    autoTable(doc, { head, body, startY: 35 });
-    doc.save(`PatientList_${user.name.replace(/\s/g, '_')}.pdf`);
-  };
-
-  return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Doctor's Dashboard</h1>
-        <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">Welcome back, {user.name} ({user.department}).</p>
-
-        {/* Stats Cards */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard 
-            title="Patients Today" 
-            value={todaysAppointmentsCount.toString()} 
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-5.176-5.958" /></svg>}
-          />
-          <StatCard 
-            title="Total Patients" 
-            value={doctorPatients.length.toString()} 
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>}
-          />
-          <StatCard 
-            title="Patient Satisfaction" 
-            value="98%" 
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-          />
+const DashboardView: React.FC<{
+    todaysAppointments: Appointment[];
+    doctorPatients: Patient[];
+    onViewChart: (patient: Patient) => void;
+}> = ({ todaysAppointments, doctorPatients, onViewChart }) => {
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <StatCard 
+                    title="Appointments Today" 
+                    value={todaysAppointments.length}
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                />
+                <StatCard 
+                    title="Total Assigned Patients" 
+                    value={doctorPatients.length} 
+                    icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-5.176-5.958" /></svg>}
+                />
+            </div>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+                 <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Today's Schedule</h2>
+                 <div className="space-y-4 max-h-96 overflow-y-auto">
+                     {todaysAppointments.length > 0 ? todaysAppointments.map(app => {
+                         const patient = doctorPatients.find(p => p.id === app.patientId);
+                         return (
+                            <div key={app.id} className="p-4 bg-light dark:bg-dark-bg rounded-lg border-l-4 border-primary">
+                                <div className="flex justify-between items-start flex-wrap gap-2">
+                                    <div>
+                                        <p className="font-bold text-lg dark:text-dark-text">{app.time} - {app.patientName}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Reason: {patient?.currentCondition || app.type}</p>
+                                    </div>
+                                    <button onClick={() => patient && onViewChart(patient)} className="text-sm bg-primary/10 text-primary dark:bg-primary/30 dark:text-white font-semibold py-1 px-3 rounded-full hover:bg-primary/20 transition">
+                                        View Chart
+                                    </button>
+                                </div>
+                            </div>
+                         );
+                     }) : <p className="text-gray-500 dark:text-gray-400">No appointments scheduled for today.</p>}
+                 </div>
+            </div>
         </div>
+    );
+};
 
-        {/* My Patients List */}
-        <div className="mt-8 bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+const AppointmentsView: React.FC<{ 
+    appointments: Appointment[];
+    onUpdateStatus: (id: string, status: 'Completed' | 'Cancelled') => void;
+}> = ({ appointments, onUpdateStatus }) => {
+    const [filter, setFilter] = useState<'Upcoming' | 'Completed' | 'Cancelled'>('Upcoming');
+
+    const filteredAppointments = useMemo(() => {
+        return appointments.filter(a => a.status === filter).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [appointments, filter]);
+    
+    const getStatusClass = (status: Appointment['status']) => {
+        switch (status) {
+            case 'Upcoming': return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+            case 'Completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300';
+            case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+        }
+    };
+
+    return (
+        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Manage Appointments</h2>
+            <div className="flex space-x-2 border-b dark:border-dark-border mb-4">
+                <button onClick={() => setFilter('Upcoming')} className={`py-2 px-4 text-sm font-medium ${filter === 'Upcoming' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}>Upcoming</button>
+                <button onClick={() => setFilter('Completed')} className={`py-2 px-4 text-sm font-medium ${filter === 'Completed' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}>Completed</button>
+                <button onClick={() => setFilter('Cancelled')} className={`py-2 px-4 text-sm font-medium ${filter === 'Cancelled' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700'}`}>Cancelled</button>
+            </div>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                 {filteredAppointments.map(app => (
+                    <div key={app.id} className="p-4 bg-light dark:bg-dark-bg rounded-lg">
+                        <div className="flex justify-between items-start flex-wrap gap-2">
+                             <div>
+                                <p className="font-bold dark:text-dark-text">{app.patientName}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(app.date).toLocaleDateString()} at {app.time} - {app.type}</p>
+                             </div>
+                             <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(app.status)}`}>{app.status}</span>
+                                {app.status === 'Upcoming' && (
+                                    <>
+                                        <button onClick={() => onUpdateStatus(app.id, 'Completed')} className="text-xs bg-secondary text-white font-semibold py-1 px-2 rounded hover:bg-green-600">Complete</button>
+                                        <button onClick={() => onUpdateStatus(app.id, 'Cancelled')} className="text-xs bg-red-100 text-red-700 font-semibold py-1 px-2 rounded hover:bg-red-200">Cancel</button>
+                                    </>
+                                )}
+                             </div>
+                        </div>
+                    </div>
+                 ))}
+                 {filteredAppointments.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-8">No {filter.toLowerCase()} appointments.</p>}
+            </div>
+        </div>
+    );
+}
+
+const PatientsView: React.FC<{
+    patients: Patient[];
+    onViewChart: (patient: Patient) => void;
+    onDownload: () => void;
+}> = ({ patients, onViewChart, onDownload }) => {
+    return (
+        <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text">My Patients</h2>
-                <button onClick={handleDownloadPatientList} className="bg-secondary/10 text-secondary dark:hover:bg-secondary/30 text-xs font-bold py-1 px-2 rounded hover:bg-secondary/20 transition-colors">
+                <button onClick={onDownload} className="bg-secondary/10 text-secondary dark:hover:bg-secondary/30 text-xs font-bold py-1 px-2 rounded hover:bg-secondary/20 transition-colors">
                 Download List
                 </button>
             </div>
-            <div className="overflow-x-auto max-h-[25rem] overflow-y-auto">
+            <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
                 <table className="min-w-full">
                 <thead className="bg-light dark:bg-dark-bg sticky top-0">
                     <tr>
@@ -304,16 +308,13 @@ const DoctorPortal: React.FC<DoctorPortalProps> = ({ user, appointments, prescri
                     </tr>
                 </thead>
                 <tbody className="text-gray-700 dark:text-dark-text">
-                    {doctorPatients.map(patient => (
+                    {patients.map(patient => (
                     <tr key={patient.id} className="border-b border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-bg">
                         <td className="py-2 px-3">{patient.name}</td>
                         <td className="py-2 px-3">{patient.age}</td>
                         <td className="py-2 px-3">{patient.currentCondition}</td>
                         <td className="py-2 px-3">
-                            <button 
-                                onClick={() => setSelectedPatient(patient)} 
-                                className="text-sm bg-primary/10 text-primary dark:bg-primary/30 dark:text-white font-semibold py-1 px-3 rounded-full hover:bg-primary/20 transition"
-                            >
+                            <button onClick={() => onViewChart(patient)} className="text-sm bg-primary/10 text-primary dark:bg-primary/30 dark:text-white font-semibold py-1 px-3 rounded-full hover:bg-primary/20 transition">
                                 View Chart
                             </button>
                         </td>
@@ -323,21 +324,164 @@ const DoctorPortal: React.FC<DoctorPortalProps> = ({ user, appointments, prescri
                 </table>
             </div>
         </div>
-      </div>
+    );
+};
 
-      {selectedPatient && (
-        <PatientDetailModal 
-            doctor={user}
-            patient={selectedPatient}
-            appointments={appointments.filter(a => a.patientId === selectedPatient.id)}
-            prescriptions={prescriptions.filter(p => p.patientId === selectedPatient.id)}
-            labTests={labTests.filter(t => t.patientName === selectedPatient.name)}
-            onClose={() => setSelectedPatient(null)}
-            onSavePrescription={handleSavePrescription}
-        />
-      )}
+const AnalyticsView: React.FC<{ appointments: Appointment[], patients: Patient[] }> = ({ appointments, patients }) => {
+    const appointmentChartData = useMemo(() => {
+        const counts: { [key: string]: number } = {};
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            counts[formatDate(d)] = 0;
+        }
+        appointments.forEach(app => {
+            if (counts[app.date] !== undefined) {
+                counts[app.date]++;
+            }
+        });
+        return Object.entries(counts).map(([date, count]) => ({
+            date: new Date(date).toLocaleDateString('en-us', { month: 'short', day: 'numeric' }),
+            count
+        }));
+    }, [appointments]);
+
+    const conditionsChartData = useMemo(() => {
+        const counts = patients.reduce((acc, p) => {
+            acc[p.currentCondition] = (acc[p.currentCondition] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    }, [patients]);
+    
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
+    return (
+        <div className="space-y-8">
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Appointments This Week</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={appointmentChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(74, 85, 104, 0.4)" />
+                        <XAxis dataKey="date" tick={{ fill: '#A0AEC0' }} />
+                        <YAxis allowDecimals={false} tick={{ fill: '#A0AEC0' }} />
+                        <Tooltip cursor={{ fill: 'rgba(125, 125, 125, 0.1)' }} contentStyle={{ backgroundColor: '#2D3748', border: 'none' }} />
+                        <Bar dataKey="count" fill="#00A859" name="Appointments" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+                 <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Common Patient Conditions</h2>
+                 <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                        <Pie data={conditionsChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                             {conditionsChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: '#2D3748', border: 'none' }} />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
+
+interface DoctorPortalProps {
+  user: User;
+  appointments: Appointment[];
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
+  prescriptions: Prescription[];
+  setPrescriptions: React.Dispatch<React.SetStateAction<Prescription[]>>;
+  labTests: LabTest[];
+}
+
+type DoctorTab = 'Dashboard' | 'Appointments' | 'Patients' | 'Analytics';
+
+const DoctorPortal: React.FC<DoctorPortalProps> = ({ user, appointments, setAppointments, prescriptions, setPrescriptions, labTests }) => {
+    const [activeTab, setActiveTab] = useState<DoctorTab>('Dashboard');
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+    const doctorsAppointments = useMemo(() => appointments.filter(app => app.doctorId === user.id), [user.id, appointments]);
+    const patientIds = useMemo(() => [...new Set(doctorsAppointments.map(app => app.patientId))], [doctorsAppointments]);
+    const doctorPatients = useMemo(() => MOCK_PATIENTS.filter(p => patientIds.includes(p.id)), [patientIds]);
+
+    const todaysAppointments = useMemo(() => doctorsAppointments.filter(
+        app => app.date === formatDate(new Date()) && app.status === 'Upcoming'
+    ).sort((a, b) => a.time.localeCompare(b.time)), [doctorsAppointments]);
+  
+    const handleSavePrescription = (prescription: Prescription) => {
+        setPrescriptions(prev => {
+            const existingIndex = prev.findIndex(p => p.id === prescription.id);
+            if (existingIndex > -1) {
+                const updated = [...prev];
+                updated[existingIndex] = prescription;
+                return updated;
+            }
+            return [...prev, prescription];
+        });
+    };
+    
+    const handleUpdateAppointmentStatus = (id: string, status: 'Completed' | 'Cancelled') => {
+        const message = `Are you sure you want to mark this appointment as ${status.toLowerCase()}?`;
+        if (window.confirm(message)) {
+            setAppointments(prev => prev.map(app => app.id === id ? { ...app, status } : app));
+        }
+    };
+
+    const handleDownloadPatientList = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text(`Patient List - ${user.name}`, 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`${user.department || 'All Departments'}`, 14, 28);
+        const head = [['Name', 'Age', 'Current Condition']];
+        const body = doctorPatients.map(p => [p.name, p.age, p.currentCondition]);
+        autoTable(doc, { head, body, startY: 35 });
+        doc.save(`PatientList_${user.name.replace(/\s/g, '_')}.pdf`);
+    };
+
+    const renderTabContent = () => {
+        switch(activeTab) {
+            case 'Dashboard': return <DashboardView todaysAppointments={todaysAppointments} doctorPatients={doctorPatients} onViewChart={setSelectedPatient} />;
+            case 'Appointments': return <AppointmentsView appointments={doctorsAppointments} onUpdateStatus={handleUpdateAppointmentStatus} />;
+            case 'Patients': return <PatientsView patients={doctorPatients} onViewChart={setSelectedPatient} onDownload={handleDownloadPatientList} />;
+            case 'Analytics': return <AnalyticsView appointments={doctorsAppointments} patients={doctorPatients} />;
+        }
+    }
+
+    return (
+    <>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fadeIn">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Doctor's Dashboard</h1>
+            <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">Welcome back, {user.name} ({user.department}).</p>
+
+            <div className="mt-6 border-b border-gray-200 dark:border-gray-700">
+                <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                    {(['Dashboard', 'Appointments', 'Patients', 'Analytics'] as DoctorTab[]).map(tab => (
+                        <button key={tab} onClick={() => setActiveTab(tab)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+                            {tab}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+            
+            <div className="mt-8">{renderTabContent()}</div>
+        </div>
+
+        {selectedPatient && (
+            <PatientDetailModal 
+                doctor={user}
+                patient={selectedPatient}
+                appointments={appointments.filter(a => a.patientId === selectedPatient.id)}
+                prescriptions={prescriptions.filter(p => p.patientId === selectedPatient.id)}
+                labTests={labTests.filter(t => t.patientName === selectedPatient.name)}
+                onClose={() => setSelectedPatient(null)}
+                onSavePrescription={handleSavePrescription}
+            />
+        )}
     </>
-  );
+    );
 };
 
 export default DoctorPortal;

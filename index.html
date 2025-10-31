@@ -28,12 +28,23 @@
             },
             animation: {
               fadeIn: 'fadeIn 0.3s ease-in-out',
+              gradientShift: 'gradientShift 15s ease infinite',
             },
             keyframes: {
               fadeIn: {
                 '0%': { opacity: 0 },
                 '100%': { opacity: 1 },
               },
+              gradientShift: {
+                '0%, 100%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
+              },
+            },
+            boxShadow: {
+              'glow-primary': '0 0 10px rgba(0, 87, 168, 0.4), 0 0 20px rgba(0, 87, 168, 0.2)',
+              'glow-primary-hover': '0 0 20px rgba(0, 87, 168, 0.7), 0 0 30px rgba(0, 136, 254, 0.5)',
+              'glow-secondary': '0 0 10px rgba(0, 168, 89, 0.4), 0 0 20px rgba(0, 168, 89, 0.2)',
+              'glow-secondary-hover': '0 0 20px rgba(0, 168, 89, 0.7), 0 0 30px rgba(0, 200, 100, 0.5)',
             }
           }
         }

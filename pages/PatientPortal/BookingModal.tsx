@@ -12,6 +12,20 @@ const timeSlots = [
   '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'
 ];
 
+// Helper function to parse time string like "02:00 PM" into 24-hour format hours and minutes
+const parseTime = (timeStr: string) => {
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) {
+      hours += 12;
+    }
+    if (modifier === 'AM' && hours === 12) { // Handle midnight case
+      hours = 0;
+    }
+    return { hours, minutes };
+};
+
+
 const BookingModal: React.FC<BookingModalProps> = ({ onClose, onAppointmentBooked }) => {
   const specializations = useMemo(() => [...new Set(MOCK_DOCTORS.map(d => d.specialization))], []);
 
@@ -29,6 +43,41 @@ const BookingModal: React.FC<BookingModalProps> = ({ onClose, onAppointmentBooke
   useEffect(() => {
     setSelectedDoctorId('');
   }, [selectedSpecialization]);
+  
+  // Reset time when date changes to ensure a valid slot is re-selected
+  useEffect(() => {
+    setTime('');
+  }, [date]);
+
+  const availableTimeSlots = useMemo(() => {
+    if (!date) return [];
+
+    const now = new Date();
+    // Use T00:00:00 to compare dates without being affected by timezones
+    const selectedDate = new Date(date + 'T00:00:00'); 
+    
+    // Check if the selected date is today
+    if (selectedDate.toDateString() === now.toDateString()) {
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Filter out past time slots for today
+      return timeSlots.filter(slot => {
+        const { hours: slotHour, minutes: slotMinute } = parseTime(slot);
+        if (slotHour > currentHour) {
+          return true;
+        }
+        if (slotHour === currentHour && slotMinute > currentMinute) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // If selected date is in the future, all slots are available
+    return timeSlots;
+  }, [date]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +85,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ onClose, onAppointmentBooke
       setError('Please select a doctor, date, and a time slot.');
       return;
     }
+
+    // Secondary check to prevent booking past appointments, e.g., if the modal was left open
+    const now = new Date();
+    const { hours, minutes } = parseTime(time);
+    const finalSelectedDateTime = new Date(date);
+    finalSelectedDateTime.setHours(hours, minutes, 0, 0);
+
+    if (finalSelectedDateTime <= now) {
+        setError("You cannot book an appointment for a past time. Please choose a future time.");
+        // Also clear the invalid time to force re-selection
+        setTime('');
+        return;
+    }
+    
     setError('');
     
     const selectedDoctor = MOCK_DOCTORS.find(d => d.id === selectedDoctorId);
@@ -128,22 +191,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ onClose, onAppointmentBooke
               {date && (
                 <div className="mt-4">
                     <h4 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-2">Available Slots</h4>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {timeSlots.map(slot => (
-                            <button
-                                type="button"
-                                key={slot}
-                                onClick={() => setTime(slot)}
-                                className={`py-2 px-3 rounded-md text-sm font-semibold transition-colors ${
-                                    time === slot
-                                    ? 'bg-primary text-white ring-2 ring-offset-2 ring-primary ring-offset-white dark:ring-offset-dark-card'
-                                    : 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30'
-                                }`}
-                            >
-                                {slot}
-                            </button>
-                        ))}
-                    </div>
+                    {availableTimeSlots.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {availableTimeSlots.map(slot => (
+                                <button
+                                    type="button"
+                                    key={slot}
+                                    onClick={() => setTime(slot)}
+                                    className={`py-2 px-3 rounded-md text-sm font-semibold transition-colors ${
+                                        time === slot
+                                        ? 'bg-primary text-white ring-2 ring-offset-2 ring-primary ring-offset-white dark:ring-offset-dark-card'
+                                        : 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30'
+                                    }`}
+                                >
+                                    {slot}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-md">
+                            No available slots for today. Please select a future date.
+                        </p>
+                    )}
                 </div>
               )}
             </div>

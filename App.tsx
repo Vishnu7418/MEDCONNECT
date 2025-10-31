@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { User, Page, Role, Medicine, Appointment, Invoice, Prescription, LabTest } from './types';
 import { MOCK_USERS, MOCK_MEDICINES, MOCK_APPOINTMENTS, MOCK_INVOICES, MOCK_PRESCRIPTIONS, MOCK_LAB_TESTS } from './constants';
 import Navbar from './components/Navbar';
@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [theme, setTheme] = useState<Theme>('light');
+  const logoutTimer = useRef<number | null>(null);
   
   const [users, setUsers] = useState<User[]>(() => {
     try {
@@ -160,11 +161,50 @@ const App: React.FC = () => {
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   };
 
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+    setCurrentPage('Home');
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    if (logoutTimer.current) {
+        clearTimeout(logoutTimer.current);
+    }
+    logoutTimer.current = window.setTimeout(() => {
+        if (currentUser) {
+            handleLogout();
+            alert("You have been logged out due to inactivity.");
+        }
+    }, 15 * 60 * 1000); // 15 minutes
+  }, [currentUser, handleLogout]);
+
+  useEffect(() => {
+      if (currentUser) {
+          const events = ['mousemove', 'keypress', 'scroll', 'click'];
+          events.forEach(event => window.addEventListener(event, resetTimer));
+          resetTimer();
+
+          return () => {
+              events.forEach(event => window.removeEventListener(event, resetTimer));
+              if (logoutTimer.current) {
+                  clearTimeout(logoutTimer.current);
+              }
+          };
+      }
+  }, [currentUser, resetTimer]);
+
+
   const handleLogin = (email: string, password: string, role: Role) => {
     const user = users.find(
       u => u.email.toLowerCase() === email.toLowerCase() && u.password === password && u.role === role
     );
     if (user) {
+      if (!user.isVerified && user.role === 'PATIENT') {
+        setLoginError('This account has not been verified. Please check your email.');
+        // In a real app, you would direct them to a verification flow.
+        // For this demo, we'll allow the LoginModal to handle showing a verification prompt.
+        return 'unverified';
+      }
       setCurrentUser(user);
       // Redirect to role-specific page after login
       switch (user.role) {
@@ -192,12 +232,8 @@ const App: React.FC = () => {
     } else {
       setLoginError('Invalid email, password, or role. Please try again.');
     }
+    return 'failed';
   };
-
-  const handleLogout = useCallback(() => {
-    setCurrentUser(null);
-    setCurrentPage('Home');
-  }, []);
 
   const navigate = useCallback((page: Page) => {
     setCurrentPage(page);
@@ -217,9 +253,9 @@ const App: React.FC = () => {
       case 'Patient Portal':
         return currentUser?.role === 'PATIENT' ? <PatientPortal user={currentUser} appointments={appointments} setAppointments={setAppointments} prescriptions={prescriptions} labTests={labTests} /> : <HomePage navigate={navigate} />;
       case 'Doctor Portal':
-        return currentUser?.role === 'DOCTOR' ? <DoctorPortal user={currentUser} appointments={appointments} prescriptions={prescriptions} setPrescriptions={setPrescriptions} labTests={labTests} /> : <HomePage navigate={navigate} />;
+        return currentUser?.role === 'DOCTOR' ? <DoctorPortal user={currentUser} appointments={appointments} setAppointments={setAppointments} prescriptions={prescriptions} setPrescriptions={setPrescriptions} labTests={labTests} /> : <HomePage navigate={navigate} />;
       case 'Admin Dashboard':
-        return currentUser?.role === 'ADMIN' ? <AdminDashboard user={currentUser} allUsers={users} setUsers={setUsers} medicines={medicines} setMedicines={setMedicines} invoices={invoices} setInvoices={setInvoices} /> : <HomePage navigate={navigate} />;
+        return currentUser?.role === 'ADMIN' ? <AdminDashboard user={currentUser} allUsers={users} setUsers={setUsers} medicines={medicines} setMedicines={setMedicines} invoices={invoices} setInvoices={setInvoices} appointments={appointments} setAppointments={setAppointments} /> : <HomePage navigate={navigate} />;
       case 'Nurse Portal':
         return currentUser?.role === 'NURSE' ? <NursePortal user={currentUser} /> : <HomePage navigate={navigate} />;
       case 'Pharmacy Portal':
@@ -259,7 +295,7 @@ const App: React.FC = () => {
           setCurrentPage={setCurrentPage}
         />
       )}
-      {currentUser && currentUser.role === 'PATIENT' && <HealthAssistant />}
+      {currentUser && <HealthAssistant users={users} medicines={medicines} appointments={appointments} />}
     </div>
   );
 };

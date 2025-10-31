@@ -17,26 +17,56 @@ const ContactPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     if (!formData.fullName || !formData.email || !formData.message) {
       setFormError('Please fill in your name, email, and message.');
       setStatus('error');
       return;
     }
-    setFormError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setFormError('Please enter a valid email address.');
+      setStatus('error');
+      return;
+    }
 
     setStatus('sending');
-    // Simulate an API call
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
-      setStatus('success');
-      setFormData({ fullName: '', email: '', phone: '', message: '' });
+    
+    try {
+        const response = await fetch('https://formsubmit.co/monika200619@gmail.com', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                name: formData.fullName,
+                email: formData.email,
+                phone: formData.phone,
+                message: formData.message,
+            })
+        });
 
-      // Reset status after a few seconds so the user can send another message
-      setTimeout(() => setStatus('idle'), 5000);
-    }, 1500);
+        if (response.ok) {
+            setStatus('success');
+            setFormData({ fullName: '', email: '', phone: '', message: '' });
+            // Reset status after a few seconds so the user can send another message
+            setTimeout(() => setStatus('idle'), 5000);
+        } else {
+            const data = await response.json().catch(() => ({})); // Handle cases where response is not JSON
+            console.error("FormSubmit Error:", data);
+            setFormError(data.message || 'An error occurred. Please try again.');
+            setStatus('error');
+        }
+    } catch (error) {
+        console.error('Submission error:', error);
+        setFormError('There was a network error sending your message. Please check your connection and try again.');
+        setStatus('error');
+    }
   };
 
   return (

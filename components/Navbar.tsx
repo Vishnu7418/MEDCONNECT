@@ -85,9 +85,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLoginClick, onLogou
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <button onClick={() => onNavigate('Home')} className="flex-shrink-0 flex items-center gap-2">
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM5.05 4.05a1 1 0 00-1.414 1.414l.707.707a1 1 0 001.414-1.414l-.707-.707zM14.95 4.05a1 1 0 00-1.414-1.414l-.707.707a1 1 0 101.414 1.414l.707-.707zM10 5a5 5 0 100 10 5 5 0 000-10zm0 12a1 1 0 100-2 1 1 0 000 2zM3 10a1 1 0 11-2 0 1 1 0 012 0zm14 0a1 1 0 11-2 0 1 1 0 012 0zM6.464 14.95a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM13.536 14.95a1 1 0 00-1.414-1.414l-.707-.707a1 1 0 101.414 1.414l.707.707z" clipRule="evenodd" />
-              </svg>
+               <svg className="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 9H15V6C15 5.44772 14.5523 5 14 5H10C9.44772 5 9 5.44772 9 6V9H6C5.44772 9 5 9.44772 5 10V14C5 14.5523 5.44772 15 6 15H9V18C9 18.5523 9.44772 19 10 19H14C14.5523 19 15 18.5523 15 18V15H18C18.5523 15 19 14.5523 19 14V10C19 9.44772 18.5523 9 18 9Z"/>
+               </svg>
               <span className="text-xl font-bold text-primary">MediConnect</span>
             </button>
             <div className="hidden md:block">
@@ -124,7 +124,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLoginClick, onLogou
                                     <p className="text-sm text-gray-500 dark:text-gray-400" role="none">{user.email}</p>
                                 </div>
                                 <button onClick={() => { onNavigate(getUserPortalPage()); setUserMenuOpen(false); }} className="w-full text-left text-gray-700 dark:text-dark-text block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
-                                    My Portal
+                                    {user.role === 'PATIENT' ? 'My Portal' : getUserPortalPage()}
                                 </button>
                                 <button onClick={() => { onLogout(); setUserMenuOpen(false); }} className="w-full text-left text-red-600 dark:text-red-400 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                     Logout
@@ -134,7 +134,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLoginClick, onLogou
                     )}
                  </div>
               ) : (
-                <button onClick={onLoginClick} className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition">
+                <button onClick={onLoginClick} className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-all duration-300 shadow-glow-primary hover:shadow-glow-primary-hover hover:-translate-y-0.5">
                   Patient/Staff Login
                 </button>
               )}

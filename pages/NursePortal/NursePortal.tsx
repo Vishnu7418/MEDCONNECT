@@ -58,46 +58,36 @@ const NursePortal: React.FC<{ user: User }> = ({ user }) => {
     handleCloseModal();
   };
 
-  const handleDownloadSummary = (patient: AssignedPatient) => {
+  const handleDownloadShiftReport = () => {
     try {
         const doc = new jsPDF();
         
         // Header
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
-        doc.text("Nurse Daily Patient Summary", 14, 22);
+        doc.text("Nurse Shift Report", 14, 22);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100);
         doc.text(`Nurse: ${user.name}`, 14, 28);
         doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 34);
         
-        // Patient Info Table
+        const head = [['Patient Name', 'Room', 'Status', 'Vitals (BP, Temp, HR)']];
+        const body = MOCK_ASSIGNED_PATIENTS.map(p => [
+            p.name,
+            p.room,
+            p.status,
+            `BP: ${p.vitals.bp}, Temp: ${p.vitals.temp}, HR: ${p.vitals.hr}`
+        ]);
+
         autoTable(doc, {
             startY: 45,
-            head: [['Patient Information']],
-            body: [
-                ['Name', patient.name],
-                ['Room', patient.room],
-                ['Status', patient.status],
-            ],
-            headStyles: { fillColor: [0, 87, 168] },
-            columnStyles: { 0: { fontStyle: 'bold' } }
+            head: head,
+            body: body,
+            headStyles: { fillColor: [139, 92, 246] }, // Purple nurse theme color
         });
 
-        // Vitals Table
-        autoTable(doc, {
-            head: [['Latest Vitals']],
-            body: [
-                ['Blood Pressure', patient.vitals.bp],
-                ['Temperature', patient.vitals.temp],
-                ['Heart Rate', patient.vitals.hr],
-            ],
-            headStyles: { fillColor: [139, 92, 246] }, // Purple color for Nurse theme
-            columnStyles: { 0: { fontStyle: 'bold' } }
-        });
-
-        doc.save(`Patient_Summary_${patient.name.replace(/\s/g, '_')}.pdf`);
+        doc.save(`Nurse_Shift_Report_${user.name.replace(/\s/g, '_')}.pdf`);
     } catch (err) {
         console.error("PDF Generation Error:", err);
         alert("An error occurred while generating the PDF. Please check the console for details.");
@@ -122,7 +112,15 @@ const NursePortal: React.FC<{ user: User }> = ({ user }) => {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Assigned Patients */}
           <div className="lg:col-span-2 bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Assigned Patients</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text">Assigned Patients</h2>
+               <button 
+                  onClick={handleDownloadShiftReport}
+                  className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition text-sm"
+                >
+                  Download Shift Report
+                </button>
+            </div>
             <div className="space-y-4">
               {MOCK_ASSIGNED_PATIENTS.map(patient => (
                 <div key={patient.id} className="p-4 bg-light dark:bg-dark-bg rounded-lg border-l-4 border-purple-500">
@@ -134,13 +132,6 @@ const NursePortal: React.FC<{ user: User }> = ({ user }) => {
                     <div className="flex items-center gap-2">
                       <button onClick={() => handleViewChart(patient)} className="text-sm bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 font-semibold py-1 px-3 rounded-full hover:bg-purple-200 transition">
                         View Chart
-                      </button>
-                      <button 
-                        onClick={() => handleDownloadSummary(patient)}
-                        className="text-sm bg-primary/10 text-primary dark:bg-primary/30 dark:text-white font-semibold py-1 px-3 rounded-full hover:bg-primary/20 transition"
-                        aria-label={`Download summary for ${patient.name}`}
-                      >
-                        Download Summary
                       </button>
                     </div>
                   </div>

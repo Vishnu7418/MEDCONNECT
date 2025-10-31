@@ -62,9 +62,9 @@ const AboutPage: React.FC = () => {
               Our physicians are among the best in their fields, bringing a wealth of experience and dedication to your care.
             </p>
           </div>
-          <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+          <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-4 [perspective:2000px]">
             {MOCK_DOCTORS.map((doctor) => (
-              <li key={doctor.id}>
+              <li key={doctor.id} className="transition-all duration-300 ease-in-out hover:shadow-2xl hover:[transform:rotateX(3deg)_rotateY(-4deg)_translateZ(30px)] rounded-lg p-4">
                 <img className="mx-auto h-56 w-56 rounded-full object-cover" src={doctor.imageUrl} alt={doctor.name} />
                 <h3 className="mt-6 text-lg font-semibold leading-8 tracking-tight text-gray-900 dark:text-dark-text">{doctor.name}</h3>
                 <p className="text-base leading-7 text-primary">{doctor.specialization}</p>

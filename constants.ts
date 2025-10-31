@@ -2,38 +2,38 @@ import type { User, Doctor, Appointment, MedicalRecord, Bill, Service, WellnessE
 
 export const MOCK_USERS: User[] = [
   // Patients
-  { id: 'p001', name: 'John Doe', email: 'john.doe@email.com', role: 'PATIENT', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=John+Doe&background=0057A8&color=fff' },
-  { id: 'p002', name: 'Alice Johnson', email: 'alice.j@email.com', role: 'PATIENT', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Alice+Johnson&background=0057A8&color=fff' },
+  { id: 'p001', name: 'John Doe', email: 'john.doe@email.com', role: 'PATIENT', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=John+Doe&background=0057A8&color=fff', isVerified: true },
+  { id: 'p002', name: 'Alice Johnson', email: 'alice.j@email.com', role: 'PATIENT', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Alice+Johnson&background=0057A8&color=fff', isVerified: true },
   
   // Doctors
-  { id: 'd001', name: 'Dr. Jane Smith', department: "Cardiology", email: "jane.smith@hospital.com", password: "janeCardio123", role: 'DOCTOR', avatarUrl: 'https://ui-avatars.com/api/?name=Jane+Smith&background=00A859&color=fff' },
-  { id: 'd002', name: "Dr. Michael Brown", department: "Neurology", email: "michael.brown@hospital.com", password: "mikeNeuro456", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Michael+Brown&background=00A859&color=fff' },
-  { id: 'd003', name: "Dr. Emily White", department: "Pediatrics", email: "emily.white@hospital.com", password: "emilyPeds789", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Emily+White&background=00A859&color=fff' },
-  { id: 'd004', name: "Dr. Robert Green", department: "Orthopedics", email: "robert.green@hospital.com", password: "robertOrtho321", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Robert+Green&background=00A859&color=fff' },
-  { id: 'd005', name: "Dr. Ramesh Kumar", department: "General Physician", email: "ramesh.kumar@hospital.com", password: "rameshGP654", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Ramesh+Kumar&background=00A859&color=fff' },
-  { id: 'd006', name: "Dr. Meena Raj", department: "Family Medicine", email: "meena.raj@hospital.com", password: "meenaFM987", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Meena+Raj&background=00A859&color=fff' },
-  { id: 'd007', name: "Dr. Arjun Das", department: "Internal Medicine", email: "arjun.das@hospital.com", password: "arjunIM741", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Arjun+Das&background=00A859&color=fff' },
-  { id: 'd008', name: "Dr. Priya Sharma", department: "Dentistry", email: "priya.sharma@hospital.com", password: "priyaDent852", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Priya+Sharma&background=00A859&color=fff' },
-  { id: 'd009', name: "Dr. Karan Patel", department: "Orthodontics", email: "karan.patel@hospital.com", password: "karanOrtho963", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Karan+Patel&background=00A859&color=fff' },
-  { id: 'd010', name: "Dr. Sneha Rao", department: "Cosmetic Dentistry", email: "sneha.rao@hospital.com", password: "snehaCos123", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Sneha+Rao&background=00A859&color=fff' },
+  { id: 'd001', name: 'Dr. Jane Smith', department: "Cardiology", email: "jane.smith@hospital.com", password: "janeCardio123", role: 'DOCTOR', avatarUrl: 'https://ui-avatars.com/api/?name=Jane+Smith&background=00A859&color=fff', isVerified: true },
+  { id: 'd002', name: "Dr. Michael Brown", department: "Neurology", email: "michael.brown@hospital.com", password: "mikeNeuro456", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Michael+Brown&background=00A859&color=fff', isVerified: true },
+  { id: 'd003', name: "Dr. Emily White", department: "Pediatrics", email: "emily.white@hospital.com", password: "emilyPeds789", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Emily+White&background=00A859&color=fff', isVerified: true },
+  { id: 'd004', name: "Dr. Robert Green", department: "Orthopedics", email: "robert.green@hospital.com", password: "robertOrtho321", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Robert+Green&background=00A859&color=fff', isVerified: true },
+  { id: 'd005', name: "Dr. Ramesh Kumar", department: "General Physician", email: "ramesh.kumar@hospital.com", password: "rameshGP654", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Ramesh+Kumar&background=00A859&color=fff', isVerified: true },
+  { id: 'd006', name: "Dr. Meena Raj", department: "Family Medicine", email: "meena.raj@hospital.com", password: "meenaFM987", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Meena+Raj&background=00A859&color=fff', isVerified: true },
+  { id: 'd007', name: "Dr. Arjun Das", department: "Internal Medicine", email: "arjun.das@hospital.com", password: "arjunIM741", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Arjun+Das&background=00A859&color=fff', isVerified: true },
+  { id: 'd008', name: "Dr. Priya Sharma", department: "Dentistry", email: "priya.sharma@hospital.com", password: "priyaDent852", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Priya+Sharma&background=00A859&color=fff', isVerified: true },
+  { id: 'd009', name: "Dr. Karan Patel", department: "Orthodontics", email: "karan.patel@hospital.com", password: "karanOrtho963", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Karan+Patel&background=00A859&color=fff', isVerified: true },
+  { id: 'd010', name: "Dr. Sneha Rao", department: "Cosmetic Dentistry", email: "sneha.rao@hospital.com", password: "snehaCos123", role: "DOCTOR", avatarUrl: 'https://ui-avatars.com/api/?name=Sneha+Rao&background=00A859&color=fff', isVerified: true },
   
   // Nurses
-  { id: 'n001', name: "Nurse Kaviya", department: "General Ward", email: "kaviya@nurse.com", password: "kaviya1234", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Kaviya&background=8B5CF6&color=fff' },
-  { id: 'n002', name: "Nurse Priya", department: "ICU", email: "priya@nurse.com", password: "priya5678", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Priya&background=8B5CF6&color=fff' },
-  { id: 'n003', name: "Nurse Swetha", department: "Emergency", email: "swetha@nurse.com", password: "swetha9012", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Swetha&background=8B5CF6&color=fff' },
-  { id: 'n004', name: "Nurse Anjali", department: "Pediatrics", email: "anjali@nurse.com", password: "anjali3456", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Anjali&background=8B5CF6&color=fff' },
-  { id: 'n005', name: "Nurse Meena", department: "OPD", email: "meena@nurse.com", password: "meena7890", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Meena&background=8B5CF6&color=fff' },
+  { id: 'n001', name: "Nurse Kaviya", department: "General Ward", email: "kaviya@nurse.com", password: "kaviya1234", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Kaviya&background=8B5CF6&color=fff', isVerified: true },
+  { id: 'n002', name: "Nurse Priya", department: "ICU", email: "priya@nurse.com", password: "priya5678", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Priya&background=8B5CF6&color=fff', isVerified: true },
+  { id: 'n003', name: "Nurse Swetha", department: "Emergency", email: "swetha@nurse.com", password: "swetha9012", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Swetha&background=8B5CF6&color=fff', isVerified: true },
+  { id: 'n004', name: "Nurse Anjali", department: "Pediatrics", email: "anjali@nurse.com", password: "anjali3456", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Anjali&background=8B5CF6&color=fff', isVerified: true },
+  { id: 'n005', name: "Nurse Meena", department: "OPD", email: "meena@nurse.com", password: "meena7890", role: "NURSE", avatarUrl: 'https://ui-avatars.com/api/?name=Meena&background=8B5CF6&color=fff', isVerified: true },
 
   // Lab Technicians
-  { id: 'l001', name: "Lab Tech John", department: "Pathology", email: "john@lab.com", password: "john123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=John&background=10B981&color=fff' },
-  { id: 'l002', name: "Lab Tech Ramesh", department: "Biochemistry", email: "ramesh@lab.com", password: "ramesh123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=Ramesh&background=10B981&color=fff' },
-  { id: 'l003', name: "Lab Tech Sneha", department: "Microbiology", email: "sneha@lab.com", password: "sneha123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=Sneha&background=10B981&color=fff' },
+  { id: 'l001', name: "Lab Tech John", department: "Pathology", email: "john@lab.com", password: "john123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=John&background=10B981&color=fff', isVerified: true },
+  { id: 'l002', name: "Lab Tech Ramesh", department: "Biochemistry", email: "ramesh@lab.com", password: "ramesh123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=Ramesh&background=10B981&color=fff', isVerified: true },
+  { id: 'l003', name: "Lab Tech Sneha", department: "Microbiology", email: "sneha@lab.com", password: "sneha123", role: "LAB_TECHNICIAN", avatarUrl: 'https://ui-avatars.com/api/?name=Sneha&background=10B981&color=fff', isVerified: true },
 
   // Pharmacy
-  { id: 'ph001', name: 'Peter Petrelli', email: 'pharmacy@hms.com', role: 'PHARMACY', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Peter+Petrelli&background=F97316&color=fff' },
+  { id: 'ph001', name: 'Peter Petrelli', email: 'pharmacy@hms.com', role: 'PHARMACY', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Peter+Petrelli&background=F97316&color=fff', isVerified: true },
 
   // Admin
-  { id: 'a001', name: 'Admin User', email: 'admin@hms.com', role: 'ADMIN', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Admin+User&background=6c757d&color=fff' },
+  { id: 'a001', name: 'Admin User', email: 'admin@hms.com', role: 'ADMIN', password: 'password', avatarUrl: 'https://ui-avatars.com/api/?name=Admin+User&background=6c757d&color=fff', isVerified: true },
 ];
 
 export const MOCK_PATIENTS: Patient[] = [

@@ -1,8 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import type { User, Role, Medicine, Invoice, InvoiceStatus, BillingRecord } from '../../types';
+import type { User, Role, Medicine, Invoice, InvoiceStatus, BillingRecord, Appointment } from '../../types';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import AppointmentManagement from './AppointmentManagement';
+import { getAdminInsights } from '../../services/geminiService';
+import { Remarkable } from 'remarkable';
+import ConfirmationModal from '../ConfirmationModal';
+
+const md = new Remarkable();
 
 // --- Reusable Modals ---
 
@@ -78,6 +84,12 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, allUsers, onSave, o
             return;
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
         const emailExists = allUsers.some(
             u => u.email.toLowerCase() === formData.email?.toLowerCase() && u.id !== formData.id
         );
@@ -133,14 +145,40 @@ interface AdminDashboardProps {
   setMedicines: React.Dispatch<React.SetStateAction<Medicine[]>>;
   invoices: Invoice[];
   setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
+  appointments: Appointment[];
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
 }
 
-type AdminTab = 'Analytics' | 'Staff' | 'Patients' | 'Pharmacy' | 'Billing' | 'Reports';
-const TABS: AdminTab[] = ['Analytics', 'Staff', 'Patients', 'Pharmacy', 'Billing', 'Reports'];
+type AdminTab = 'Analytics' | 'Staff' | 'Patients' | 'Pharmacy' | 'Billing' | 'Appointments' | 'Reports';
+const TABS: AdminTab[] = ['Analytics', 'Staff', 'Patients', 'Pharmacy', 'Billing', 'Appointments', 'Reports'];
 
 // --- Tab Components ---
 
-const AnalyticsDashboard: React.FC<AdminDashboardProps> = ({ allUsers, medicines }) => {
+const AnalyticsDashboard: React.FC<AdminDashboardProps> = (props) => {
+    const { allUsers, medicines, appointments } = props;
+    const [insights, setInsights] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleGenerateInsights = async () => {
+        setIsLoading(true);
+        setError('');
+        setInsights('');
+        try {
+            const result = await getAdminInsights({
+                appointments: appointments,
+                medicines: medicines,
+                users: allUsers,
+            });
+            setInsights(result);
+        } catch (e) {
+            setError('Failed to generate insights. Please try again.');
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const roleCounts = useMemo(() => allUsers.reduce((acc, u) => {
         acc[u.role] = (acc[u.role] || 0) + 1;
         return acc;
@@ -169,8 +207,8 @@ const AnalyticsDashboard: React.FC<AdminDashboardProps> = ({ allUsers, medicines
                     <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{roleCounts['DOCTOR'] || 0}</p>
                 </div>
                  <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Nurses</h3>
-                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{roleCounts['NURSE'] || 0}</p>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Appointments</h3>
+                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{appointments.length}</p>
                 </div>
                 <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Medicines</h3>
@@ -202,6 +240,32 @@ const AnalyticsDashboard: React.FC<AdminDashboardProps> = ({ allUsers, medicines
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+            </div>
+             {/* New AI Insights Section */}
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text">AI-Powered Insights</h2>
+                    <button
+                        onClick={handleGenerateInsights}
+                        disabled={isLoading}
+                        className="bg-secondary text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition disabled:bg-gray-400"
+                    >
+                        {isLoading ? 'Generating...' : '✨ Generate Report'}
+                    </button>
+                </div>
+                {isLoading && (
+                    <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p className="mt-4 text-gray-500 dark:text-gray-400">Analyzing hospital data...</p>
+                    </div>
+                )}
+                {error && <p className="text-red-500">{error}</p>}
+                {insights && (
+                    <div
+                        className="prose prose-blue dark:prose-invert max-w-none p-4 border border-gray-200 dark:border-dark-border rounded-lg bg-light dark:bg-dark-bg"
+                        dangerouslySetInnerHTML={{ __html: md.render(insights) }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -242,6 +306,8 @@ const StaffManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }) 
   const [activeTab, setActiveTab] = useState<'DOCTOR' | 'NURSE' | 'STAFF'>('DOCTOR');
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<EditableUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const handleAddNewUser = () => {
     let defaultRole: Role = 'DOCTOR';
@@ -251,18 +317,30 @@ const StaffManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }) 
     setModalOpen(true);
   };
   const handleEditUser = (userToEdit: User) => { setEditingUser(userToEdit); setModalOpen(true); };
+  
   const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    const user = allUsers.find(u => u.id === userId);
+    if (user) {
+        setUserToDelete(user);
+        setConfirmDeleteOpen(true);
     }
   };
+  
+  const confirmDeleteUser = () => {
+    if (userToDelete) {
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
+    }
+    setConfirmDeleteOpen(false);
+    setUserToDelete(null);
+  };
+
   const handleSaveUser = (userToSave: EditableUser) => {
     if (userToSave.id) {
       setUsers(prevUsers => prevUsers.map(u => u.id === userToSave.id ? { ...u, ...userToSave } as User : u));
     } else {
       const newUser: User = {
         id: `user_${new Date().getTime()}`, name: userToSave.name!, email: userToSave.email!, password: userToSave.password!, role: userToSave.role!, department: userToSave.department,
-        avatarUrl: `https://ui-avatars.com/api/?name=${(userToSave.name || '').replace(' ', '+')}&background=00A859&color=fff`
+        avatarUrl: `https://ui-avatars.com/api/?name=${(userToSave.name || '').replace(' ', '+')}&background=00A859&color=fff`, isVerified: true
       };
       setUsers(prevUsers => [...prevUsers, newUser]);
     }
@@ -289,6 +367,16 @@ const StaffManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }) 
           </div>
           <UserManagementTable users={filteredUsers} onEdit={handleEditUser} onDelete={handleDeleteUser} />
           {isModalOpen && <UserEditModal user={editingUser} allUsers={allUsers} onSave={handleSaveUser} onClose={() => { setModalOpen(false); setEditingUser(null); }} />}
+          {isConfirmDeleteOpen && userToDelete && (
+            <ConfirmationModal 
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)}
+                onConfirm={confirmDeleteUser}
+                title="Delete Staff Member" 
+                message={`Are you sure you want to delete ${userToDelete.name}? This action cannot be undone.`} 
+                confirmText="Yes, Delete" 
+            />
+          )}
       </div>
   );
 };
@@ -296,6 +384,8 @@ const StaffManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }) 
 const PatientManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState<string | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const showNotification = (message: string) => {
         setNotification(message);
@@ -303,13 +393,20 @@ const PatientManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }
     };
 
     const handleDeleteUser = (userId: string) => {
-        if (window.confirm('Are you sure you want to delete this patient?')) {
-            const userToDelete = allUsers.find(u => u.id === userId);
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            if (userToDelete) {
-                showNotification(`Patient "${userToDelete.name}" has been deleted.`);
-            }
+        const user = allUsers.find(u => u.id === userId);
+        if (user) {
+            setUserToDelete(user);
+            setConfirmDeleteOpen(true);
         }
+    };
+    
+    const confirmDeleteUser = () => {
+        if (userToDelete) {
+            setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+            showNotification(`Patient "${userToDelete.name}" has been deleted.`);
+        }
+        setConfirmDeleteOpen(false);
+        setUserToDelete(null);
     };
     
     const patients = useMemo(() => allUsers.filter(u => u.role === 'PATIENT'), [allUsers]);
@@ -349,6 +446,16 @@ const PatientManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }
             </div>
             <UserManagementTable users={filteredPatients} onDelete={handleDeleteUser} showEditButton={false} />
         </div>
+        {isConfirmDeleteOpen && userToDelete && (
+            <ConfirmationModal 
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)} 
+                onConfirm={confirmDeleteUser} 
+                title="Delete Patient" 
+                message={`Are you sure you want to delete patient "${userToDelete.name}"? This action cannot be undone.`} 
+                confirmText="Yes, Delete" 
+            />
+        )}
       </>
     );
 };
@@ -356,6 +463,8 @@ const PatientManagement: React.FC<AdminDashboardProps> = ({ allUsers, setUsers }
 const PharmacyManagement: React.FC<AdminDashboardProps> = ({ medicines, setMedicines }) => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
+    const [medicineToDelete, setMedicineToDelete] = useState<Medicine | null>(null);
+    const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     
     const handleAddMedicine = (newMedicineData: Omit<Medicine, 'id'>) => {
         const newMedicine: Medicine = { id: `med_${new Date().getTime()}`, ...newMedicineData };
@@ -371,10 +480,21 @@ const PharmacyManagement: React.FC<AdminDashboardProps> = ({ medicines, setMedic
             setQuantityInputs(prev => { const next = {...prev}; delete next[id]; return next; });
         }
     };
+    
     const handleDeleteMedicine = (id: string) => {
-        if (window.confirm('Are you sure you want to delete this medicine?')) {
-            setMedicines(prev => prev.filter(m => m.id !== id));
+        const med = medicines.find(m => m.id === id);
+        if (med) {
+            setMedicineToDelete(med);
+            setConfirmDeleteOpen(true);
         }
+    };
+
+    const confirmDeleteMedicine = () => {
+        if (medicineToDelete) {
+            setMedicines(prev => prev.filter(m => m.id !== medicineToDelete.id));
+        }
+        setConfirmDeleteOpen(false);
+        setMedicineToDelete(null);
     };
     
     return (
@@ -411,6 +531,16 @@ const PharmacyManagement: React.FC<AdminDashboardProps> = ({ medicines, setMedic
                  </table>
              </div>
              {isModalOpen && <AddMedicineModal onSave={handleAddMedicine} onClose={() => setModalOpen(false)} />}
+             {isConfirmDeleteOpen && medicineToDelete && (
+                <ConfirmationModal 
+                    isOpen={isConfirmDeleteOpen}
+                    onClose={() => setConfirmDeleteOpen(false)} 
+                    onConfirm={confirmDeleteMedicine} 
+                    title="Delete Medicine" 
+                    message={`Are you sure you want to delete ${medicineToDelete.name} from inventory?`} 
+                    confirmText="Yes, Delete" 
+                />
+            )}
          </div>
     );
 };
@@ -560,13 +690,13 @@ const BillingManagement: React.FC<AdminDashboardProps> = ({ invoices, setInvoice
     };
     
     const handleSaveInvoice = (invoiceData: Invoice) => {
-      if (invoiceData.id) {
-        // Update existing invoice
-        setInvoices(prev => prev.map(inv => inv.id === invoiceData.id ? invoiceData : inv));
-      } else {
-        // Create new invoice
-        setInvoices(prev => [...prev, invoiceData]);
-      }
+      setInvoices(prev => {
+          const existing = prev.find(inv => inv.id === invoiceData.id);
+          if (existing) {
+              return prev.map(inv => inv.id === invoiceData.id ? invoiceData : inv);
+          }
+          return [...prev, invoiceData];
+      });
       setModalOpen(false);
     };
 
@@ -648,7 +778,7 @@ const BillingManagement: React.FC<AdminDashboardProps> = ({ invoices, setInvoice
 };
 
 
-const ReportsTab: React.FC<AdminDashboardProps> = ({ allUsers, medicines }) => {
+const ReportsTab: React.FC<AdminDashboardProps> = ({ allUsers, medicines, invoices }) => {
     const generatePdf = (title: string, head: string[][], body: (string|number)[][], filename: string) => {
         const doc = new jsPDF();
         doc.text(title, 14, 20);
@@ -682,25 +812,38 @@ const ReportsTab: React.FC<AdminDashboardProps> = ({ allUsers, medicines }) => {
             'Pharmacy_Stock_Report.pdf'
         );
     };
+    const handleDownloadBillingReport = () => {
+        generatePdf(
+            "Billing Report",
+            [['Invoice #', 'Patient', 'Amount', 'Status', 'Due Date']],
+            invoices.map(i => [i.invoiceNumber, i.patientName, `$${i.totalAmount.toFixed(2)}`, i.status, i.dueDate]),
+            'Billing_Report.pdf'
+        );
+    };
 
     return (
         <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-md">
              <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text mb-4">Report Generation</h2>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-light dark:bg-dark-bg p-4 rounded-lg">
                     <h3 className="font-bold dark:text-white">Staff Report</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a full list of all staff members including doctors, nurses, and technicians.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a full list of all staff members.</p>
                     <button onClick={handleDownloadStaffReport} className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition">Download PDF</button>
                 </div>
                 <div className="bg-light dark:bg-dark-bg p-4 rounded-lg">
                     <h3 className="font-bold dark:text-white">Patient Report</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a list of all registered patients in the system.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a list of all registered patients.</p>
                     <button onClick={handleDownloadPatientReport} className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition">Download PDF</button>
                 </div>
                 <div className="bg-light dark:bg-dark-bg p-4 rounded-lg">
                     <h3 className="font-bold dark:text-white">Pharmacy Stock Report</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a complete report of the current pharmacy inventory.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download current pharmacy inventory.</p>
                     <button onClick={handleDownloadPharmacyReport} className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition">Download PDF</button>
+                </div>
+                 <div className="bg-light dark:bg-dark-bg p-4 rounded-lg">
+                    <h3 className="font-bold dark:text-white">Billing Report</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 my-2">Download a summary of all invoices.</p>
+                    <button onClick={handleDownloadBillingReport} className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition">Download PDF</button>
                 </div>
              </div>
         </div>
@@ -717,6 +860,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       case 'Patients': return <PatientManagement {...props} />;
       case 'Pharmacy': return <PharmacyManagement {...props} />;
       case 'Billing': return <BillingManagement {...props} />;
+      case 'Appointments': return <AppointmentManagement appointments={props.appointments} setAppointments={props.setAppointments} />;
       case 'Reports': return <ReportsTab {...props} />;
       default: return null;
     }

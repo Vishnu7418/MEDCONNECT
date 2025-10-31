@@ -1,15 +1,27 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getHealthAssistantResponse } from '../services/geminiService';
+import { getChatbotResponse } from '../services/geminiService';
+import type { User, Medicine, Appointment } from '../types';
 
 interface Message {
   text: string;
   sender: 'user' | 'bot';
 }
 
-const HealthAssistant: React.FC = () => {
+interface HealthAssistantProps {
+  users: User[];
+  medicines: Medicine[];
+  appointments: Appointment[];
+}
+
+const HealthAssistant: React.FC<HealthAssistantProps> = ({ users, medicines, appointments }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      text: 'Hello 👋 I’m MediBot. Ask me anything about our hospital or doctors.',
+      sender: 'bot'
+    }
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -18,7 +30,25 @@ const HealthAssistant: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
+  
+  // Reset to initial state when chat is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setMessages([
+        {
+          text: 'Hello 👋 I’m MediBot. Ask me anything about our hospital or doctors.',
+          sender: 'bot'
+        }
+      ]);
+      setInput('');
+      setIsLoading(false);
+    }
+  }, [isOpen]);
 
   const handleSend = async () => {
     if (input.trim() === '' || isLoading) return;
@@ -28,7 +58,7 @@ const HealthAssistant: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    const botResponseText = await getHealthAssistantResponse(input);
+    const botResponseText = await getChatbotResponse(input, { users, medicines, appointments });
     const botMessage: Message = { text: botResponseText, sender: 'bot' };
 
     setMessages(prev => [...prev, botMessage]);
@@ -46,21 +76,19 @@ const HealthAssistant: React.FC = () => {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-transform hover:scale-110"
-        aria-label="Open Health Assistant"
+        className="fixed bottom-6 right-6 z-40 bg-primary text-white rounded-full p-3 shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-transform hover:scale-110 text-3xl flex items-center justify-center h-16 w-16"
+        aria-label="Open MediBot Assistant"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h.5a1.5 1.5 0 010 3H14a1 1 0 00-1 1v1.5a1.5 1.5 0 01-3 0V9a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H9a1 1 0 001-1v-.5z" />
-          <path d="M6 4.5a1.5 1.5 0 013 0V5a1 1 0 001 1h.5a1.5 1.5 0 010 3H10a1 1 0 00-1 1v1.5a1.5 1.5 0 01-3 0V10a1 1 0 00-1-1H5.5a1.5 1.5 0 010-3H6a1 1 0 001-1v-.5z" />
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM2 10a8 8 0 1116 0 8 8 0 01-16 0z" clipRule="evenodd" />
-        </svg>
+        💬
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-full max-w-sm h-[60vh] bg-white dark:bg-dark-card rounded-xl shadow-2xl flex flex-col transition-all duration-300">
-          <div className="bg-primary text-white p-4 rounded-t-xl">
-            <h3 className="text-lg font-semibold">MediBot Health Assistant</h3>
-            <p className="text-sm opacity-90">How can I help you today?</p>
+        <div className="fixed bottom-24 right-6 z-50 w-full max-w-sm h-[60vh] bg-white dark:bg-dark-card rounded-xl shadow-2xl flex flex-col transition-all duration-300 animate-fadeIn">
+          <div className="bg-primary text-white p-4 rounded-t-xl flex justify-between items-center">
+            <h3 className="text-lg font-semibold">MediBot – Hospital Assistant</h3>
+            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            </button>
           </div>
           <div className="flex-1 p-4 overflow-y-auto bg-light dark:bg-dark-bg">
             {messages.map((msg, index) => (
@@ -74,6 +102,7 @@ const HealthAssistant: React.FC = () => {
               <div className="flex justify-start mb-3">
                 <div className="rounded-lg px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-dark-text">
                   <div className="flex items-center space-x-2">
+                    <p className="text-sm italic">MediBot is typing...</p>
                     <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse"></div>
                     <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse [animation-delay:0.2s]"></div>
                     <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse [animation-delay:0.4s]"></div>
@@ -90,12 +119,12 @@ const HealthAssistant: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask a health question..."
+                placeholder="Ask a question..."
                 className="flex-1 border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary bg-transparent dark:text-dark-text dark:border-gray-600"
                 disabled={isLoading}
               />
-              <button onClick={handleSend} disabled={isLoading} className="ml-3 bg-primary text-white rounded-full p-2 hover:bg-primary/90 disabled:bg-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+              <button onClick={handleSend} disabled={isLoading || !input.trim()} className="ml-3 bg-primary text-white rounded-full p-2 hover:bg-primary/90 disabled:bg-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
               </button>
             </div>
           </div>

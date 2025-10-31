@@ -4,7 +4,7 @@ import { MOCK_USERS } from '../constants';
 
 interface LoginModalProps {
   onClose: () => void;
-  onLogin: (email: string, password: string, role: Role) => void;
+  onLogin: (email: string, password: string, role: Role) => 'unverified' | 'failed' | void;
   loginError: string;
   allUsers: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
@@ -12,7 +12,7 @@ interface LoginModalProps {
   setCurrentPage: (page: Page) => void;
 }
 
-type ModalView = 'role' | 'patientType' | 'login' | 'signup' | 'signupSuccess';
+type ModalView = 'role' | 'patientType' | 'login' | 'signup' | 'signupSuccess' | 'verifyEmail';
 
 const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
@@ -36,8 +36,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const [signupPassword, setSignupPassword] = useState('');
   const [signupError, setSignupError] = useState('');
   
-  // State for newly registered user
-  const [newlyRegisteredUser, setNewlyRegisteredUser] = useState<User | null>(null);
+  // State for user needing verification
+  const [userToVerify, setUserToVerify] = useState<User | null>(null);
 
   const handleRoleSelect = (selectedRole: Role) => {
     setRole(selectedRole);
@@ -51,7 +51,14 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role) {
-      onLogin(email, password, role);
+      const result = onLogin(email, password, role);
+      if (result === 'unverified') {
+        const unverifiedUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.role === role);
+        if (unverifiedUser) {
+          setUserToVerify(unverifiedUser);
+          setView('verifyEmail');
+        }
+      }
     }
   };
   
@@ -70,12 +77,24 @@ const LoginModal: React.FC<LoginModalProps> = ({
         email: signupEmail,
         password: signupPassword,
         role: 'PATIENT',
-        avatarUrl: `https://ui-avatars.com/api/?name=${signupName.replace(' ', '+')}&background=0057A8&color=fff`
+        avatarUrl: `https://ui-avatars.com/api/?name=${signupName.replace(' ', '+')}&background=0057A8&color=fff`,
+        isVerified: true, // Automatically verify new users for demo purposes
     };
 
     setUsers(prev => [...prev, newUser]);
-    setNewlyRegisteredUser(newUser);
     setView('signupSuccess');
+  };
+
+  const handleManualVerify = () => {
+    if (!userToVerify) return;
+    setUsers(prevUsers => prevUsers.map(u => 
+        u.id === userToVerify.id ? { ...u, isVerified: true } : u
+    ));
+    setUserToVerify(null);
+    setEmail('');
+    setPassword('');
+    setView('login');
+    alert("Account verified successfully! You can now log in.");
   };
 
   const demoUsersForRole = useMemo(() => {
@@ -119,7 +138,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
       case 'login':
         return (
           <>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text">Login as {role}</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text">
+              Login as {role && role.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}
+            </h2>
             <form onSubmit={handleLoginSubmit} className="space-y-4 mt-6">
                 <div>
                     <label htmlFor="email-login" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
@@ -145,7 +166,11 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     ))}
                 </div>
             </div>
-             <button onClick={() => setView(role === 'PATIENT' ? 'patientType' : 'role')} className="mt-4 text-sm text-gray-500 hover:underline dark:text-gray-400">Back</button>
+             <button onClick={() => {
+                setEmail('');
+                setPassword('');
+                setView(role === 'PATIENT' ? 'patientType' : 'role');
+             }} className="mt-4 text-sm text-gray-500 hover:underline dark:text-gray-400">Back</button>
           </>
         );
         
@@ -169,7 +194,13 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     {signupError && <p className="text-sm text-red-500">{signupError}</p>}
                     <button type="submit" className="w-full bg-secondary text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">Register Account</button>
                 </form>
-                <button onClick={() => setView('patientType')} className="mt-4 text-sm text-gray-500 hover:underline dark:text-gray-400">Back</button>
+                <button onClick={() => {
+                  setSignupName('');
+                  setSignupEmail('');
+                  setSignupPassword('');
+                  setSignupError('');
+                  setView('patientType');
+                }} className="mt-4 text-sm text-gray-500 hover:underline dark:text-gray-400">Back</button>
              </>
         );
         
@@ -181,19 +212,45 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h2 className="mt-4 text-2xl font-bold text-gray-800 dark:text-dark-text">Registration Successful!</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">Welcome, {newlyRegisteredUser?.name}! Your account has been created.</p>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">Your account is ready. You can now log in.</p>
                 <button
                     onClick={() => {
-                        if (newlyRegisteredUser) {
-                            setCurrentUser(newlyRegisteredUser);
-                            setCurrentPage('Patient Portal');
-                            onClose();
-                        }
+                      setEmail('');
+                      setPassword('');
+                      setView('login');
                     }}
                     className="mt-6 w-full bg-primary text-white font-semibold py-3 px-4 rounded-lg hover:bg-primary/90 transition"
                 >
-                    Go to Your Portal
+                    Back to Login
                 </button>
+            </div>
+          </>
+        );
+      
+      case 'verifyEmail':
+        return (
+          <>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text">Verify Your Account</h2>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">
+                The account for <span className="font-semibold">{userToVerify?.email}</span> is not yet verified. Please check your email for a verification link.
+              </p>
+              <div className="mt-6 bg-yellow-100 dark:bg-yellow-900/50 p-4 rounded-md">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                  For demonstration purposes, you can manually verify the account below.
+                </p>
+                <button onClick={handleManualVerify} className="mt-3 w-full bg-secondary text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">
+                  Verify Account (Demo)
+                </button>
+              </div>
+              <button onClick={() => {
+                  setEmail('');
+                  setPassword('');
+                  setUserToVerify(null);
+                  setView('login');
+              }} className="mt-4 text-sm text-gray-500 hover:underline dark:text-gray-400">
+                Back to Login
+              </button>
             </div>
           </>
         );
